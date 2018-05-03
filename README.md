@@ -1,7 +1,7 @@
-Delete GitHub Forks
+Bulk Delete GitHub Repositories
 ==
 
-Delete your forked GitHub repositories easily in two steps.
+Delete ALL of your GitHub repositories easily in two steps.
 
 ## Motivations
 
@@ -13,7 +13,6 @@ Clone this repository.
 
 ```
 $ npm install
-$ cp src/config.json.example src/config.json
 ```
 
 Add your GitHub username and access token to `config.json`. To get the access token, go to [this page](https://github.com/settings/tokens/new) and create a token that has the following permissions: `public_repo` and `delete_repo`.
