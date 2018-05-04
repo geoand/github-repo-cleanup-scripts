@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: github-cleanup
+  annotations:
+    description: This template creates a Build Configuration using an S2I builder.
+    tags: instant-app
+parameters:
+  - name: SOURCE_REPOSITORY_URL
+    description: The source URL for the application
+    displayName: Source URL
+    required: true
+  - name: SOURCE_REPOSITORY_REF
+    description: The branch name for the application
+    displayName: Source Branch
+    value: master
+    required: true
+  - name: SOURCE_REPOSITORY_DIR
+    description: The location within the source repo of the application
+    displayName: Source Directory
+    value: .
+    required: true
+  - name: GITHUB_WEBHOOK_SECRET
+    description: A secret string used to configure the GitHub webhook.
+    displayName: GitHub Webhook Secret
+    required: true
+    from: '[a-zA-Z0-9]{40}'
+    generate: expression
+  - name: CRON_EXPRESSION
+    description: The cron expression that specifies when the cleanup script will run
+    displayName: Cron Expression
+    # default value is Feb 31 which means that it will never run
+    value: "0 5 31 2 *"
+    required: true
+objects:
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: github-cleanup
+    spec: {}
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: runtime
+    spec:
+      tags:
+        - name: latest
+          from:
+            kind: DockerImage
+            name: 'bucharestgold/centos7-s2i-nodejs:10.x'
+  - apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      name: github-cleanup
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: 'github-cleanup:latest'
+      postCommit: {}
+      resources: {}
+      source:
+        git:
+          uri: '${SOURCE_REPOSITORY_URL}'
+          ref: '${SOURCE_REPOSITORY_REF}'
+        type: Git
+      strategy:
+        type: Source
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            name: 'runtime:latest'
+          incremental: true
+      triggers:
+        - github:
+            secret: '${GITHUB_WEBHOOK_SECRET}'
+          type: GitHub
+        - type: ConfigChange
+        - imageChange: {}
+          type: ImageChange
+    status:
+      lastVersion: 0
+  - apiVersion: batch/v2alpha1
+    kind: CronJob
+    metadata:
+      name: githun-cleanup
+    spec:
+      schedule: '${CRON_EXPRESSION}'
+      jobTemplate:
+        metadata:
+          labels:
+            job: githun-cleanup
+        spec:
+          backoffLimit: 1
+          template:
+            spec:
+              containers:
+              - name: githun-cleanup
+                image: runtime:latest
+              restartPolicy: Never
