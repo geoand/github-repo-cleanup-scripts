@@ -8,7 +8,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node src/fetch-repos.js && node src/delete-repos.js",
+    "start": "node src/fetch-repos.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Yangshun Tay",
